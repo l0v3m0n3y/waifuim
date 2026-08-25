@@ -6,7 +6,7 @@ import Foundation
 let client = Waifuim()
 
 do {
-    let images = try await client.get_images_list()
+    let images = try await client.getImagesList()
     print(images)
 } catch {
     print("Error: \(error)")
@@ -16,6 +16,5 @@ do {
 
 # Launch (your script)
 ```
-swiftc -o waifu waifuim.swift main.swift
-./waifu
+swift run
 ```
