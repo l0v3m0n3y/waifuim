@@ -37,65 +37,59 @@ public class Waifuim {
 
     }
     
-    public func get_stats() async throws -> Any {
-        guard let url = URL(string: "\(api)/stats/public") else {
+    private func fetchJSON(from urlString: String,method: HTTPMethod = .get,body: Data? = nil,queryParameters: [String: String]? = nil) async throws -> Any {
+        var urlComponents = URLComponents(string: urlString)
+        if let queryParameters = queryParameters {
+            urlComponents?.queryItems = queryParameters.map { URLQueryItem(name: $0.key, value: $0.value) }
+        }
+        guard let url = urlComponents?.url else {
             throw NSError(domain: "Invalid URL", code: -1)
         }
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = method.rawValue
         request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return  try JSONSerialization.jsonObject(with: data)
-    }
-    
-    public func get_artists(size: Int) async throws -> Any {
-        guard let url = URL(string: "\(api)/artists?pageSize=\(size)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
+        if let body = body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
         let (data, _) = try await URLSession.shared.data(for: request)
-        return  try JSONSerialization.jsonObject(with: data)
+        return try JSONSerialization.jsonObject(with: data)
     }
     
-    public func get_tags(size: Int) async throws -> Any {
-        guard let url = URL(string: "\(api)/tags?pageSize=\(size)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return  try JSONSerialization.jsonObject(with: data)
+    public func getStats() async throws -> Any {
+        return try await fetchJSON(from: "\(api)/stats/public")
     }
     
-    public func get_images_from_catalog(id: Int) async throws -> Any {
-        guard let url = URL(string: "\(api)/images/\(id)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return  try JSONSerialization.jsonObject(with: data)
+    public func getArtists(size: Int) async throws -> Any {
+        return try await fetchJSON(from: "\(api)/artists?pageSize=\(size)")
     }
     
-    public func get_images_list(pageSize: Int = 30,isNsfw: Bool=false,artistId: Int? = nil,tag: String? = nil,orderBy: String = "Random") async throws -> Any {
-        var urlString = "\(api)/images?isNsfw=\(isNsfw)&orderBy=\(orderBy)&page=1&pageSize=\(pageSize)"
+    public func getTags(size: Int) async throws -> Any {
+        return try await fetchJSON(from: "\(api)/tags?pageSize=\(size)")
+    }
+    
+    public func getImagesFromCatalog(id: Int) async throws -> Any {
+        return try await fetchJSON(from: "\(api)/images/\(id)")
+    }
+    
+    public func getImagesList(pageSize: Int = 30,isNsfw: Bool=false,artistId: Int? = nil,tag: String? = nil,orderBy: String = "Random") async throws -> Any {
+        let urlString = "\(api)/images"
+        
+        var queryParameters: [String: String] = [
+           "isNsfw": String(isNsfw),
+            "orderBy": orderBy,
+            "page": "1",
+            "pageSize": String(pageSize)
+        ]
+    
         if let artistId = artistId {
-            urlString += "&includedArtists=\(artistId)"
+            queryParameters["includedArtists"] = String(artistId)
         }
+    
         if let tag = tag {
-            urlString += "&includedTags=\(tag)"
+            queryParameters["includedTags"] = tag
         }
-        guard let url = URL(string: urlString) else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return  try JSONSerialization.jsonObject(with: data)
+    
+        return try await fetchJSON(from: urlString,method: .get,queryParameters: queryParameters)
     }
 }
